@@ -51,6 +51,14 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    const git_version = b.run(&.{ "git", "describe", "--tags", "--dirty" });
+    const version = std.mem.trim(u8, git_version, " \n\r");
+
+    const options = b.addOptions();
+    options.addOption([]const u8, "version", version);
+
+    kernel.root_module.addOptions("config", options);
+
     const linker_script = switch (cpu_arch) {
         .x86 => b.path("arch/x86/linker.ld"),
         else => @panic("unsupported architecture"),

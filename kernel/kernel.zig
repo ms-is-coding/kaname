@@ -1,3 +1,5 @@
+const config = @import("config");
+
 const arch = @import("arch");
 const libk = @import("libk");
 
@@ -9,7 +11,10 @@ pub export fn kmain() void {
     arch.vga.initialize();
     libk.init(arch.vga.putchar);
 
-    libk.printk("Hello, {d}!", .{42});
+    libk.printk(
+        \\KFS {s}
+        \\Hello, {d}!
+    , .{config.version, 42});
 
     while (true) {
         asm volatile ("cli; hlt");
