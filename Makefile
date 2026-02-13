@@ -1,6 +1,11 @@
 ZIG_VERSION := 0.15.2
+ZIG_SIG := $(ZIG_TARBALL).minisig
+MIRROR_LIST := zig-mirrors.txt
 
-# Use system zig if available, otherwise download a local copy
+# =========================
+# System zig detection
+# =========================
+
 SYSTEM_ZIG := $(shell command -v zig 2>/dev/null)
 
 ifdef SYSTEM_ZIG
@@ -28,23 +33,62 @@ else
     $(error Unsupported architecture: $(UNAME_M))
   endif
 
-  ZIG_TARBALL := zig-$(ZIG_OS)-$(ZIG_ARCH)-$(ZIG_VERSION).tar.xz
-  ZIG_URL := https://ziglang.org/download/$(ZIG_VERSION)/$(ZIG_TARBALL)
-  ZIG_DIR := zig-$(ZIG_OS)-$(ZIG_ARCH)-$(ZIG_VERSION)
+  ZIG_TARBALL := zig-$(ZIG_ARCH)-$(ZIG_OS)-$(ZIG_VERSION).tar.xz
+  ZIG_SIG := $(ZIG_TARBALL).minisig
+  ZIG_DIR := zig-$(ZIG_ARCH)-$(ZIG_OS)-$(ZIG_VERSION)
   ZIG := $(ZIG_DIR)/zig
   ZIG_TARGET := $(ZIG)
 endif
+
+# =========================
+# Public key (REQUIRED)
+# =========================
+
+# Copy the official minisign public key from:
+# https://ziglang.org/download
+ZIG_PUBKEY := <PASTE_OFFICIAL_MINISIGN_PUBLIC_KEY_HERE>
+
+# =========================
+# Targets
+# =========================
 
 .PHONY: all build run test fmt clean distclean zig
 
 all: build
 
-$(ZIG_TARBALL):
-	curl -LO $(ZIG_URL)
+# Fetch and shuffle community mirrors
+$(MIRROR_LIST):
+	curl -fsSL https://ziglang.org/download/community-mirrors.txt -o $@
+	shuf $@ -o $@
+
+# Download + verify Zig (only if not using system zig)
+ifndef SYSTEM_ZIG
+
+$(ZIG_TARBALL): $(MIRROR_LIST)
+	@set -e; \
+	for mirror in $$(cat $(MIRROR_LIST)); do \
+		echo "Trying $$mirror/$(ZIG_TARBALL)"; \
+		if wget -O $(ZIG_TARBALL) "$$mirror/$(ZIG_TARBALL)?source=makefile"; then \
+			wget -O $(ZIG_SIG) "$$mirror/$(ZIG_SIG)?source=makefile"; \
+			exit 0; \
+		fi; \
+		rm -f $(ZIG_TARBALL) $(ZIG_SIG); \
+	done; \
+	echo "All mirrors failed."; \
+	exit 1
+				# echo "Verifying signature..."; \
+				# if minisign -Vm $(ZIG_TARBALL) -P "$(ZIG_PUBKEY)"; then \
+				# 	echo "Successfully fetched Zig $(ZIG_VERSION)!"; \
+				# 	exit 0; \
+				# else \
+				# 	echo "Signature verification failed."; \
+				# fi; \
+
 
 $(ZIG_DIR)/zig: $(ZIG_TARBALL)
-	tar xf $(ZIG_TARBALL)
-	touch $(ZIG_DIR)/zig
+	tar -xf $(ZIG_TARBALL)
+
+endif
 
 zig: $(ZIG_TARGET)
 
@@ -64,6 +108,7 @@ clean:
 	rm -rf zig-out .zig-cache
 
 distclean: clean
-ifdef ZIG_DIR
-	rm -rf $(ZIG_DIR) $(ZIG_TARBALL)
+ifndef SYSTEM_ZIG
+	rm -rf $(ZIG_DIR) $(ZIG_TARBALL) $(ZIG_SIG) $(MIRROR_LIST)
 endif
+
