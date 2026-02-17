@@ -1,4 +1,5 @@
 const std = @import("std");
+const ports = @import("ports.zig");
 
 pub const VGA_WIDTH = 80;
 pub const VGA_HEIGHT = 25;
@@ -139,10 +140,21 @@ pub fn clearScreen(color: u8) void {
 }
 
 pub fn enableCursor(start: u8, end: u8) void {
-    _ = start;
-    _ = end;
+    ports.outb(0x3D4, 0x0A);
+    ports.outb(0x3D5, (ports.inb(0x3D5) & 0xC0) | start);
+    ports.outb(0x3D4, 0x0B);
+    ports.outb(0x3D5, (ports.inb(0x3D5) & 0xE0) | end);
 }
 
-pub fn disableCursor() void { }
+pub fn disableCursor() void {
+    ports.outb(0x3D4, 0x0A);
+    ports.outb(0x3D5, 0x20);
+}
 
-pub fn updateCursor() void {}
+pub fn updateCursor() void {
+    const pos: u16 = @intCast(terminal_row * VGA_WIDTH + terminal_column);
+    ports.outb(0x3D4, 0x0F);
+    ports.outb(0x3D5, @truncate(pos));
+    ports.outb(0x3D4, 0x0E);
+    ports.outb(0x3D5, @truncate(pos >> 8));
+}

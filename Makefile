@@ -35,7 +35,7 @@ test: zig
 	$(ZIG) build test
 
 fmt: zig
-	$(ZIG) fmt src
+	$(ZIG) fmt kernel arch abi libk
 
 clean:
 	rm -rf zig-out .zig-cache

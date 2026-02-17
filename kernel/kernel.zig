@@ -14,7 +14,7 @@ pub export fn kmain() void {
     libk.printk(
         \\KFS {s}
         \\Hello, {d}!
-    , .{config.version, 42});
+    , .{ config.version, 42 });
 
     while (true) {
         asm volatile ("cli; hlt");
