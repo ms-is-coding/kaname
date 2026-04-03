@@ -69,6 +69,17 @@ export fn _start() callconv(.naked) noreturn {
         \\pushl %%ebx
         // Push magic value
         \\pushl %%eax
+
+        // Enable FPU
+        \\mov %%cr0, %%eax
+        \\and $0xFFFFFFFB, %%eax
+        \\or  $0x00000002, %%eax
+        \\mov %%eax, %%cr0
+
+        // Enable SSE
+        \\mov %%cr4, %%eax
+        \\or  $0x00000600, %%eax
+        \\mov %%eax, %%cr4
         \\call kmain
         \\sti
         \\.Lhalt:

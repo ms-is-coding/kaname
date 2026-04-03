@@ -185,7 +185,7 @@ pub fn parse(info: *Info, handlers: anytype) void {
                 handlers.onCmdline(@ptrFromInt(addr)),
             .framebuffer => if (@hasDecl(handlers, "onFramebuffer"))
                 handlers.onFramebuffer(@ptrFromInt(addr)),
-            _ => {}
+            _ => {},
         }
         addr += (tag.size + 7) & ~@as(usize, 7);
     }

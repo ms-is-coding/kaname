@@ -9,8 +9,6 @@ pub fn build(b: *std.Build) void {
         .cpu_arch = cpu_arch,
         .os_tag = .freestanding,
         .abi = .none,
-        .cpu_features_sub = std.Target.x86.featureSet(&.{ .sse, .sse2 }),
-        .cpu_features_add = std.Target.x86.featureSet(&.{ .soft_float }),
     });
 
     const libk = b.createModule(.{

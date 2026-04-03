@@ -15,11 +15,6 @@ pub const vbe = switch (builtin.target.cpu.arch) {
     else => @compileError("unsupported architecture"),
 };
 
-pub const fb = switch (builtin.target.cpu.arch) {
-    .x86 => @import("x86/fb.zig"),
-    else => @compileError("unsupported architecture"),
-};
-
 pub const vga = switch (builtin.target.cpu.arch) {
     .x86 => @import("x86/vga.zig"),
     else => @compileError("unsupported architecture"),
@@ -27,5 +22,10 @@ pub const vga = switch (builtin.target.cpu.arch) {
 
 pub const ports = switch (builtin.target.cpu.arch) {
     .x86 => @import("x86/ports.zig"),
+    else => @compileError("unsupported architecture"),
+};
+
+pub const serial = switch (builtin.target.cpu.arch) {
+    .x86 => @import("x86/serial.zig"),
     else => @compileError("unsupported architecture"),
 };
