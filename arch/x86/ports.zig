@@ -12,3 +12,7 @@ pub fn inb(port: u16) u8 {
         : [port] "N{dx}" (port),
     );
 }
+
+pub fn ioWait() void {
+    outb(0x80, 0);
+}
