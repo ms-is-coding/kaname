@@ -1,9 +1,22 @@
 const ports = @import("ports.zig");
 const std = @import("std");
 
-const COM1: u16 = 0x3F8;
+// https://wiki.osdev.org/Serial_Ports
 
-pub fn init() void {
+const COM1: u16 = 0x3F8;
+const COM2: u16 = 0x2F8;
+const COM3: u16 = 0x3E8;
+const COM4: u16 = 0x2E8;
+const COM5: u16 = 0x5F8;
+const COM6: u16 = 0x4F8;
+const COM7: u16 = 0x5E8;
+const COM8: u16 = 0x4E8;
+
+// Todo: Probe all serial ports
+
+const SerialError = error{TestFailed};
+
+pub fn init() SerialError!void {
     ports.outb(COM1 + 1, 0x00); // disable interrupts
     ports.outb(COM1 + 3, 0x80); // enable DLAB
     ports.outb(COM1 + 0, 0x03); // baud rate low: 38400
@@ -11,6 +24,17 @@ pub fn init() void {
     ports.outb(COM1 + 3, 0x03); // 8 bits, no parity, one stop bit
     ports.outb(COM1 + 2, 0xC7); // enable FIFO
     ports.outb(COM1 + 4, 0x0B); // enable IRQs, RTS/DSR set
+    ports.outb(COM1 + 4, 0x1E); // loopback mode
+    ports.outb(COM1 + 0, 0xAE); // test serial
+
+    if (ports.inb(COM1 + 0) != 0xAE) {
+        return error.TestFailed;
+    }
+    ports.outb(COM1 + 4, 0x0F); // normal operation mode
+}
+
+fn serialReceived() bool {
+    return ports.inb(COM1 + 5) & 1 != 0;
 }
 
 fn isTransmitEmpty() bool {
@@ -22,14 +46,22 @@ pub fn putchar(c: u8) void {
     ports.outb(COM1, c);
 }
 
+pub fn getchar() u8 {
+    while (!serialReceived()) {}
+    return ports.inb(COM1);
+}
+
 pub fn write(s: []const u8) void {
     for (s) |c| putchar(c);
 }
 
 const SerialWriter = struct {
     pub fn write(_: void, data: []const u8) error{}!usize {
+        var prev: u8 = 0;
         for (data) |c| {
+            if (c == '\n' and prev != '\r') putchar('\r');
             putchar(c);
+            prev = c;
         }
         return data.len;
     }

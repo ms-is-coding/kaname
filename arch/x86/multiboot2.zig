@@ -1,5 +1,7 @@
 const vbe = @import("vbe.zig");
 
+// https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html
+
 pub const BOOTLOADER_MAGIC: u32 = 0x36d76289;
 
 pub const Info = extern struct {

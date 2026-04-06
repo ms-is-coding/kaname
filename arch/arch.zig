@@ -1,31 +1,19 @@
 const builtin = @import("builtin");
 
-pub const boot = switch (builtin.target.cpu.arch) {
-    .x86 => @import("x86/boot.zig"),
+const impl = switch (builtin.target.cpu.arch) {
+    .x86 => @import("x86/x86.zig"),
     else => @compileError("unsupported architecture"),
 };
 
-pub const multiboot2 = switch (builtin.target.cpu.arch) {
-    .x86 => @import("x86/multiboot2.zig"),
-    else => @compileError("unsupported architecture"),
-};
-
-pub const vbe = switch (builtin.target.cpu.arch) {
-    .x86 => @import("x86/vbe.zig"),
-    else => @compileError("unsupported architecture"),
-};
-
-pub const vga = switch (builtin.target.cpu.arch) {
-    .x86 => @import("x86/vga.zig"),
-    else => @compileError("unsupported architecture"),
-};
-
-pub const ports = switch (builtin.target.cpu.arch) {
-    .x86 => @import("x86/ports.zig"),
-    else => @compileError("unsupported architecture"),
-};
-
-pub const serial = switch (builtin.target.cpu.arch) {
-    .x86 => @import("x86/serial.zig"),
-    else => @compileError("unsupported architecture"),
-};
+pub const boot = impl.boot;
+pub const gdt = impl.gdt;
+pub const multiboot2 = impl.multiboot2;
+pub const vbe = impl.vbe;
+pub const vga = impl.vga;
+pub const ports = impl.ports;
+pub const serial = impl.serial;
+pub const pic = impl.pic;
+pub const lapic = impl.lapic;
+pub const cpuid = impl.cpuid;
+pub const fpu = impl.fpu;
+pub const msr = impl.msr;

@@ -1,7 +1,6 @@
 const config = @import("config");
 
 const arch = @import("arch");
-const libk = @import("libk");
 
 const std = @import("std");
 
@@ -200,7 +199,7 @@ const rotated_vertices: [42][3]f32 = blk: {
     break :blk out;
 };
 
-var zbuffer: [1024 * 768]u16 linksection(".bss") = undefined;
+var zbuffer: [1280 * 800]u16 linksection(".bss") = undefined;
 
 fn vec3_sub(a: [3]f32, b: [3]f32) [3]f32 {
     return .{ a[0] - b[0], a[1] - b[1], a[2] - b[2] };
@@ -352,24 +351,38 @@ pub fn draw42(ptr: [*]u32, width: u32, height: u32) void {
 }
 
 pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
-    std.debug.assert(magic == arch.multiboot2.BOOTLOADER_MAGIC);
+    arch.serial.init() catch {};
 
-    arch.serial.init();
+    if (magic != arch.multiboot2.BOOTLOADER_MAGIC) {
+        arch.serial.print("bad magic: {x}\n", .{magic});
+    }
+
+    arch.gdt.init();
+    arch.lapic.init() catch {
+        arch.pic.init();
+    };
 
     arch.multiboot2.parse(mb_info, struct {
         pub fn onFramebuffer(tag: *arch.multiboot2.FramebufferTag) void {
             const ptr: [*]u32 = @ptrFromInt(@as(usize, @truncate(tag.addr)));
-            draw42(ptr, tag.width, tag.height);
+            arch.serial.print("Type: {}\n", .{tag.type});
+            arch.serial.print("Resolution: {}x{}\n", .{ tag.width, tag.height });
+            arch.serial.print("Address: {x}\n", .{tag.addr});
+            switch (tag.type) {
+                .direct => draw42(ptr, tag.width, tag.height),
+                .ega_text => {
+                    arch.vga.initialize();
+                    arch.vga.print(
+                        \\KFS {s}
+                        \\Hello, {d}!
+                    , .{ config.version, 42 });
+                },
+                else => {
+                    arch.serial.print("unsupported framebuffer type: {}\n", .{tag.type});
+                },
+            }
         }
     });
-
-    // will not print anything as framebuffer should be initialized
-    arch.vga.initialize();
-    libk.init(arch.serial.putchar);
-    libk.printk(
-        \\KFS {s}
-        \\Hello, {d}!
-    , .{ config.version, 42 });
 
     while (true) {
         asm volatile ("cli; hlt");

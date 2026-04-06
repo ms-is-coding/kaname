@@ -158,3 +158,20 @@ pub fn updateCursor() void {
     ports.outb(0x3D4, 0x0E);
     ports.outb(0x3D5, @truncate(pos >> 8));
 }
+
+const VgaWriter = struct {
+    pub fn write(_: void, data: []const u8) error{}!usize {
+        for (data) |c| putchar(c);
+        return data.len;
+    }
+
+    pub const Writer = std.io.GenericWriter(void, error{}, VgaWriter.write);
+
+    pub fn writer() Writer {
+        return .{ .context = {} };
+    }
+};
+
+pub fn print(comptime format: []const u8, args: anytype) void {
+    VgaWriter.writer().print(format, args) catch {};
+}

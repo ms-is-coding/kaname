@@ -9,30 +9,21 @@ pub fn build(b: *std.Build) void {
         .cpu_arch = cpu_arch,
         .os_tag = .freestanding,
         .abi = .none,
-    });
-
-    const libk = b.createModule(.{
-        .root_source_file = b.path("libk/libk.zig"),
-        .target = target,
-        .optimize = optimize,
+        .cpu_features_sub = std.Target.x86.featureSet(&.{
+            .sse,
+        }),
     });
 
     const arch = b.createModule(.{
         .root_source_file = b.path("arch/arch.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{
-            .{ .name = "libk", .module = libk }
-        },
     });
 
     const abi = b.createModule(.{
         .root_source_file = b.path("abi/abi.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{
-            .{ .name = "libk", .module = libk }
-        },
     });
 
     const kernel = b.addExecutable(.{
@@ -42,7 +33,6 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "libk", .module = libk },
                 .{ .name = "arch", .module = arch },
                 .{ .name = "abi", .module = abi },
             },
@@ -54,8 +44,12 @@ pub fn build(b: *std.Build) void {
 
     const options = b.addOptions();
     options.addOption([]const u8, "version", version);
+    options.addOption(bool, "full", b.option(bool, "full", "Enable all optional subsystems") orelse false);
 
-    kernel.root_module.addOptions("config", options);
+    const config = options.createModule();
+
+    kernel.root_module.addImport("config", config);
+    arch.addImport("config", config);
 
     const linker_script = switch (cpu_arch) {
         .x86 => b.path("arch/x86/linker.ld"),
@@ -69,7 +63,7 @@ pub fn build(b: *std.Build) void {
 
     const mkdir_cmd = b.addSystemCommand(&.{ "mkdir", "-p", "iso/boot/grub" });
 
-    const cp_kernel_cmd = b.addSystemCommand(&.{ "cp" });
+    const cp_kernel_cmd = b.addSystemCommand(&.{"cp"});
     cp_kernel_cmd.addArtifactArg(kernel);
     cp_kernel_cmd.addArg("iso/boot/kfs.kernel");
     cp_kernel_cmd.step.dependOn(&mkdir_cmd.step);
@@ -109,7 +103,13 @@ pub fn build(b: *std.Build) void {
         else => @panic("unsupported CPU architecture"),
     };
 
-    const qemu = b.addSystemCommand(&.{ qemu_version, "-cdrom", "kfs.iso" });
+    const qemu = b.addSystemCommand(&.{
+        qemu_version,
+        "-cdrom",
+        "kfs.iso",
+        "-serial",
+        "stdio",
+    });
     qemu.step.dependOn(&mkrescue.step);
 
     run_step.dependOn(&qemu.step);
