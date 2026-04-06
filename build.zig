@@ -71,7 +71,19 @@ pub fn build(b: *std.Build) void {
     const cp_grub_cmd = b.addSystemCommand(&.{ "cp", "meta/grub.cfg", "iso/boot/grub/grub.cfg" });
     cp_grub_cmd.step.dependOn(&mkdir_cmd.step);
 
-    const mkrescue = b.addSystemCommand(&.{ "grub-mkrescue", "-o", "kfs.iso", "iso" });
+    const mkrescue = b.addSystemCommand(&.{
+        "grub-mkrescue",
+        "-o",
+        "kfs.iso",
+        "iso",
+        "--compress=xz",
+        "--core-compress=xz",
+        "--fonts=",
+        "--themes=",
+        "--locales=",
+        "--modules=",
+    });
+
     mkrescue.step.dependOn(&cp_kernel_cmd.step);
     mkrescue.step.dependOn(&cp_grub_cmd.step);
 
