@@ -20,7 +20,7 @@ if [ -f "${INSTALL_DIR}/bin/mformat" ]; then
 fi
 
 echo "Downloading mtools..."
-curl -LO https://mirrors.dotsrc.org/gnu/mtools/mtools-4.0.43.tar.gz
+curl -LO https://mirrors.liquidweb.com/gnu/mtools/mtools-4.0.43.tar.gz
 tar -xzf mtools-4.0.43.tar.gz
 cd mtools-4.0.43
 
