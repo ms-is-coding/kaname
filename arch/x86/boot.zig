@@ -109,7 +109,7 @@ export fn _start() callconv(.naked) noreturn {
         \\pushl %%eax
     ++ _fpu_init ++ _sse_init ++
         \\call kmain
-        \\sti
+        \\cli
         \\.Lhalt:
         \\hlt
         \\jmp .Lhalt
