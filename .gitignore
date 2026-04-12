@@ -1,5 +1,7 @@
+toolchain/
 .zig-cache/
 zig-out/
 *.o
 iso/
 kfs.iso
+serial.log

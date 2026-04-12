@@ -6,6 +6,7 @@ const impl = switch (builtin.target.cpu.arch) {
 };
 
 pub const boot = impl.boot;
+pub const idt = impl.idt;
 pub const gdt = impl.gdt;
 pub const multiboot2 = impl.multiboot2;
 pub const vbe = impl.vbe;
