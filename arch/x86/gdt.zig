@@ -25,7 +25,7 @@ const Flags = packed struct(u4) {
     granularity: u1 = 1,
 };
 
-const SegmentDecriptor = packed struct(u64) {
+const SegmentDescriptor = packed struct(u64) {
     limit_low: u16,
     base_low: u16,
     base_mid: u8,
@@ -34,9 +34,9 @@ const SegmentDecriptor = packed struct(u64) {
     flags: Flags,
     base_high: u8,
 
-    const nil: SegmentDecriptor = @bitCast(@as(u64, 0));
+    const nil: SegmentDescriptor = @bitCast(@as(u64, 0));
 
-    fn make(base: u32, limit: u20, access: AccessByte, flags: Flags) SegmentDecriptor {
+    fn make(base: u32, limit: u20, access: AccessByte, flags: Flags) SegmentDescriptor {
         return .{
             .limit_low = @truncate(limit),
             .base_low = @truncate(base),
@@ -49,13 +49,13 @@ const SegmentDecriptor = packed struct(u64) {
     }
 };
 
-const gdt_entries = [GDT_ENTRIES]SegmentDecriptor{
+const gdt_entries = [GDT_ENTRIES]SegmentDescriptor{
     // 0x00 - Null descriptor
-    SegmentDecriptor.nil,
+    SegmentDescriptor.nil,
     // 0x08 - Kernel code (ring 0, RWE)
-    SegmentDecriptor.make(0, 0xFFFFF, .{ .read_write = 1, .executable = 1, .privilege = 0 }, .{}),
+    SegmentDescriptor.make(0, 0xFFFFF, .{ .read_write = 1, .executable = 1, .privilege = 0 }, .{}),
     // 0x10 - Kernel data (ring 0, RW)
-    SegmentDecriptor.make(0, 0xFFFFF, .{ .read_write = 1, .executable = 0, .privilege = 0 }, .{}),
+    SegmentDescriptor.make(0, 0xFFFFF, .{ .read_write = 1, .executable = 0, .privilege = 0 }, .{}),
 };
 
 pub fn init() void {
