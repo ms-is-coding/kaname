@@ -158,7 +158,7 @@ const vertices = [_][3]f32{
     .{ 14, -10, 2 },
 };
 
-fn rotateY(v: [3]f32, comptime angle: f32) [3]f32 {
+fn rotateY(v: [3]f32, angle: f32) [3]f32 {
     const cos_a = @cos(angle);
     const sin_a = @sin(angle);
     return .{
@@ -168,7 +168,7 @@ fn rotateY(v: [3]f32, comptime angle: f32) [3]f32 {
     };
 }
 
-fn rotateX(v: [3]f32, comptime angle: f32) [3]f32 {
+fn rotateX(v: [3]f32, angle: f32) [3]f32 {
     const cos_a = @cos(angle);
     const sin_a = @sin(angle);
     return .{
@@ -178,7 +178,7 @@ fn rotateX(v: [3]f32, comptime angle: f32) [3]f32 {
     };
 }
 
-fn rotateZ(v: [3]f32, comptime angle: f32) [3]f32 {
+fn rotateZ(v: [3]f32, angle: f32) [3]f32 {
     const cos_a = @cos(angle);
     const sin_a = @sin(angle);
     return .{
@@ -358,23 +358,33 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
     }
 
     arch.gdt.init();
-    arch.lapic.init() catch {
-        arch.pic.init();
-    };
+    arch.idt.init();
+    arch.pic.init();
+    arch.keyboard.init();
+    arch.keyboard.setCharHandler(arch.vga.putchar);
+    arch.idt.enableInterrupts();
+
+    // arch.lapic.init() catch {
+    //     arch.pic.init();
+    //     arch.serial.print("LAPIC init failed\n", .{});
+    // };
 
     arch.multiboot2.parse(mb_info, struct {
         pub fn onFramebuffer(tag: *arch.multiboot2.FramebufferTag) void {
             const ptr: [*]u32 = @ptrFromInt(@as(usize, @truncate(tag.addr)));
             arch.serial.print("Type: {}\n", .{tag.type});
             arch.serial.print("Resolution: {}x{}\n", .{ tag.width, tag.height });
-            arch.serial.print("Address: {x}\n", .{tag.addr});
+            arch.serial.print("Address: 0x{X}\n", .{tag.addr});
+
             switch (tag.type) {
                 .direct => draw42(ptr, tag.width, tag.height),
                 .ega_text => {
                     arch.vga.initialize();
+
                     arch.vga.print(
                         \\KFS {s}
                         \\Hello, {d}!
+                        \\
                     , .{ config.version, 42 });
                 },
                 else => {
@@ -384,6 +394,12 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
         }
     });
 
+    // main loop
+    while (true) {
+        asm volatile ("hlt");
+    }
+
+    // Kernel panic
     while (true) {
         asm volatile ("cli; hlt");
     }
