@@ -1,8 +1,7 @@
 const config = @import("config");
-
 const arch = @import("arch");
-
 const std = @import("std");
+const shell = @import("shell.zig");
 
 comptime {
     _ = arch.boot;
@@ -361,7 +360,7 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
     arch.idt.init();
     arch.pic.init();
     arch.keyboard.init();
-    arch.keyboard.setCharHandler(arch.vga.putchar);
+    arch.keyboard.setCharHandler(shell.onChar);
     arch.idt.enableInterrupts();
 
     // arch.lapic.init() catch {
@@ -421,6 +420,7 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
         }
     });
 
+    arch.vga.write("> ");
     // main loop
     while (true) {
         asm volatile ("hlt");
@@ -430,4 +430,9 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
     while (true) {
         asm volatile ("cli; hlt");
     }
+}
+
+pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
+    arch.serial.print("PANIC: {s}\n", .{msg});
+    while (true) asm volatile ("cli; hlt");
 }
