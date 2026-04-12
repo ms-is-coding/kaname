@@ -1,4 +1,5 @@
 const vbe = @import("vbe.zig");
+const acpi = @import("acpi.zig");
 
 // https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html
 
@@ -24,8 +25,8 @@ pub const TagType = enum(u32) {
     // efi32_systable = 11,
     // efi64_systable = 12,
     // smbios = 13,
-    // acpi_rsdp_v1 = 14,
-    // acpi_rsdp_v2 = 15,
+    acpi_rsdp_v1 = 14,
+    acpi_rsdp_v2 = 15,
     // network = 16,
     // efi_mmap = 17,
     // efi_boot_not_terminated = 18,
@@ -70,7 +71,7 @@ pub const ElfsectionTag = extern struct {
     entsize: u16,
     shndx: u16,
     reserved: u16,
-    headers: undefined,
+    // headers: undefined,
 };
 
 pub const MmapEntry = extern struct {
@@ -114,8 +115,8 @@ pub const ApmTag = extern struct {
 pub const VbeTag = extern struct {
     base: Tag,
     vbe_mode: u16,
-    vbe_interface_seg: u16,
     vbe_interface_off: u16,
+    vbe_interface_seg: u16,
     vbe_interface_len: u16,
     vbe_control_info: vbe.VbeInfoBlock,
     vbe_mode_info: vbe.VbeModeInfoBlock,
@@ -167,11 +168,21 @@ pub const FramebufferTag = extern struct {
 
     pub fn colorInfo(self: *FramebufferTag) FramebufferColorInfo {
         const addr = @intFromPtr(self) + @sizeOf(FramebufferTag);
-        return switch (self.fb_type) {
+        return switch (self.type) {
             .indexed => .{ .indexed = @as(*FramebufferIndexed, @ptrFromInt(addr)).* },
             .direct => .{ .direct = @as(*FramebufferDirect, @ptrFromInt(addr)).* },
         };
     }
+};
+
+pub const AcpiRsdpV1Tag = extern struct {
+    base: Tag,
+    rsdp: acpi.Rsdp,
+};
+
+pub const AcpiRsdpV2Tag = extern struct {
+    base: Tag,
+    rsdp: acpi.Xsdp,
 };
 
 pub fn parse(info: *Info, handlers: anytype) void {
@@ -187,6 +198,10 @@ pub fn parse(info: *Info, handlers: anytype) void {
                 handlers.onCmdline(@ptrFromInt(addr)),
             .framebuffer => if (@hasDecl(handlers, "onFramebuffer"))
                 handlers.onFramebuffer(@ptrFromInt(addr)),
+            .acpi_rsdp_v1 => if (@hasDecl(handlers, "onACPIv1"))
+                handlers.onACPIv1(@ptrFromInt(addr)),
+            .acpi_rsdp_v2 => if (@hasDecl(handlers, "onACPIv2"))
+                handlers.onACPIv2(@ptrFromInt(addr)),
             _ => {},
         }
         addr += (tag.size + 7) & ~@as(usize, 7);

@@ -392,6 +392,33 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
                 },
             }
         }
+        pub fn onACPIv1(tag: *arch.multiboot2.AcpiRsdpV1Tag) void {
+            arch.vga.print("ACPI v1 detected\n", .{});
+            if (!tag.rsdp.isValid()) {
+                arch.vga.print("Invalid ACPI signature\n", .{});
+                return;
+            }
+            arch.vga.print("Address: 0x{X}\n", .{tag.rsdp.rsdt_address});
+            arch.acpi.init(tag.rsdp.rsdt_address);
+
+            arch.serial.print(
+                \\FADT at 0x{X}
+                \\Preferred PM profile: {}
+                \\
+            , .{
+                @intFromPtr(arch.acpi.fadt),
+                arch.acpi.fadt.preferred_pm_profile,
+            });
+        }
+
+        pub fn onACPIv2(tag: *arch.multiboot2.AcpiRsdpV2Tag) void {
+            arch.vga.print("ACPI v2+ detected\n", .{});
+            if (!tag.rsdp.isValid()) {
+                arch.vga.print("Invalid ACPI signature\n", .{});
+                return;
+            }
+            arch.vga.print("Address: 0x{X}\n", .{tag.rsdp.rsdt_address});
+        }
     });
 
     // main loop

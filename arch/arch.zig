@@ -18,4 +18,5 @@ pub const lapic = impl.lapic;
 pub const cpuid = impl.cpuid;
 pub const fpu = impl.fpu;
 pub const msr = impl.msr;
+pub const acpi = impl.acpi;
 pub const keyboard = impl.keyboard;
