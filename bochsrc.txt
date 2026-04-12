@@ -1,0 +1,7 @@
+megs: 32
+romimage: file=/usr/share/bochs/BIOS-bochs-latest
+vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest.bin
+ata0-master: type=cdrom, path=kfs.iso, status=inserted
+boot: cdrom
+com1: enabled=1, mode=file, dev=serial.log
+cpu: count=1
