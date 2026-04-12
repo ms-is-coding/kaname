@@ -61,7 +61,7 @@ fmt: zig
 
 .PHONY: clean
 clean:
-	rm -rf zig-out .zig-cache
+	rm -rf zig-out .zig-cache iso kfs.iso
 
 
 .PHONY: distclean
