@@ -1,6 +1,7 @@
 const std = @import("std");
 const vga = @import("arch").vga;
 const acpi = @import("arch").acpi;
+const cpuid = @import("arch").cpuid;
 
 var line_buf: [256]u8 = undefined;
 var line_len: usize = 0;
@@ -13,6 +14,7 @@ const Command = struct {
 
 const commands = [_]Command{
     .{ .name = "help", .description = "List commands", .func = cmdHelp },
+    .{ .name = "uname", .description = "Print system information", .func = cmdUname },
     .{ .name = "shutdown", .description = "Shutdown system", .func = cmdShutdown },
     .{ .name = "cpuinfo", .description = "CPU information", .func = cmdCpuinfo },
     .{ .name = "clear", .description = "Clear screen", .func = cmdClear },
@@ -33,11 +35,51 @@ fn cmdHelp(_: []const u8) void {
     }
 }
 
+fn cmdUname(_: []const u8) void {
+    vga.print("KFS {s}\n", .{@import("config").version});
+}
+
 fn cmdShutdown(_: []const u8) void {
     acpi.shutdown();
 }
 
-fn cmdCpuinfo(_: []const u8) void {}
+fn printFlags(features: anytype) void {
+    inline for (std.meta.fields(@TypeOf(features))) |field| {
+        if (field.type == bool) {
+            if (@field(features, field.name)) {
+                vga.print("{s} ", .{field.name});
+            }
+        }
+    }
+}
+
+fn cmdCpuinfo(_: []const u8) void {
+    vga.print(
+        \\processor     : 0
+        \\vendor_id     : {s}
+        \\cpu family    : {}
+        \\model         : {}
+        \\model name    : {s}
+        \\stepping      : {}
+        \\flags         : 
+    , .{
+        cpuid.vendorString(),
+        cpuid.effectiveFamily(cpuid.familyInfo()),
+        cpuid.effectiveModel(cpuid.familyInfo()),
+        std.mem.trimRight(u8, &cpuid.brandString(), &.{0}),
+        cpuid.familyInfo().stepping,
+    });
+    printFlags(cpuid.features());
+    printFlags(cpuid.extFeatures());
+    vga.print(
+        \\
+        \\address sizes : {} bits physical, {} bits virtual
+        \\
+    , .{
+        cpuid.addressSizes().eax.physical_address_bits,
+        cpuid.addressSizes().eax.linear_address_bits,
+    });
+}
 
 fn cmdClear(_: []const u8) void {
     vga.clearScreen(0);

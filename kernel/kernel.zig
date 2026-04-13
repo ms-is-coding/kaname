@@ -8,6 +8,8 @@ comptime {
     _ = arch.boot;
 }
 
+var cpu_vendor: [12]u8 = undefined;
+var cpu_brand: [48]u8 = undefined;
 
 pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
     arch.serial.init() catch {};
@@ -15,6 +17,18 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
     if (magic != arch.multiboot2.BOOTLOADER_MAGIC) {
         arch.serial.print("bad magic: {x}\n", .{magic});
     }
+
+    cpu_vendor = arch.cpuid.vendorString();
+    cpu_brand = arch.cpuid.brandString();
+    const info = arch.cpuid.familyInfo();
+
+    arch.serial.print("CPU vendor: {s}\n", .{cpu_vendor});
+    arch.serial.print("CPU brand:  {s}\n", .{std.mem.trimRight(u8, &cpu_brand, &.{0})});
+    arch.serial.print("Family: {}  Model: {}  Stepping: {}\n", .{
+        arch.cpuid.effectiveFamily(info),
+        arch.cpuid.effectiveModel(info),
+        info.stepping,
+    });
 
     arch.gdt.init();
     arch.idt.init();
