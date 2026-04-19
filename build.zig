@@ -125,4 +125,72 @@ pub fn build(b: *std.Build) void {
     qemu.step.dependOn(&mkrescue.step);
 
     run_step.dependOn(&qemu.step);
+
+    const limine_iso_step = b.step("iso-limine", "Build bootable Limine ISO image");
+
+    const limine_dir = "/usr/share/limine";
+    const limine_iso_dir = "iso-limine";
+
+    const mkdir_limine = b.addSystemCommand(&.{ "mkdir", "-p", limine_iso_dir ++ "/boot/limine" });
+
+    const cp_kernel_limine = b.addSystemCommand(&.{"cp"});
+    cp_kernel_limine.addArtifactArg(kernel);
+    cp_kernel_limine.addArg(limine_iso_dir ++ "/boot/kfs.kernel");
+    cp_kernel_limine.step.dependOn(&mkdir_limine.step);
+
+    const cp_limine_conf = b.addSystemCommand(&.{
+        "cp", "meta/limine.conf", limine_iso_dir ++ "/boot/limine/limine.conf",
+    });
+    cp_limine_conf.step.dependOn(&mkdir_limine.step);
+
+    // Copy Limine boot files from system installation
+    const cp_limine_sys = b.addSystemCommand(&.{
+        "cp",                                             limine_dir ++ "/limine-bios.sys",
+        limine_iso_dir ++ "/boot/limine/limine-bios.sys",
+    });
+    cp_limine_sys.step.dependOn(&mkdir_limine.step);
+
+    const cp_limine_bios_cd = b.addSystemCommand(&.{
+        "cp",                                                limine_dir ++ "/limine-bios-cd.bin",
+        limine_iso_dir ++ "/boot/limine/limine-bios-cd.bin",
+    });
+    cp_limine_bios_cd.step.dependOn(&mkdir_limine.step);
+
+    const cp_limine_uefi_cd = b.addSystemCommand(&.{
+        "cp",                                                limine_dir ++ "/limine-uefi-cd.bin",
+        limine_iso_dir ++ "/boot/limine/limine-uefi-cd.bin",
+    });
+    cp_limine_uefi_cd.step.dependOn(&mkdir_limine.step);
+
+    const xorriso_limine = b.addSystemCommand(&.{
+        "xorriso",          "-as",                            "mkisofs",
+        "-b",               "boot/limine/limine-bios-cd.bin", "-no-emul-boot",
+        "-boot-load-size",  "4",                              "-boot-info-table",
+        "--efi-boot",       "boot/limine/limine-uefi-cd.bin", "-efi-boot-part",
+        "--efi-boot-image", "--protective-msdos-label",       limine_iso_dir,
+        "-o",               "kfs-limine.iso",
+    });
+    xorriso_limine.step.dependOn(&cp_kernel_limine.step);
+    xorriso_limine.step.dependOn(&cp_limine_conf.step);
+    xorriso_limine.step.dependOn(&cp_limine_sys.step);
+    xorriso_limine.step.dependOn(&cp_limine_bios_cd.step);
+    xorriso_limine.step.dependOn(&cp_limine_uefi_cd.step);
+
+    const limine_install = b.addSystemCommand(&.{ "limine", "bios-install", "kfs-limine.iso" });
+    limine_install.step.dependOn(&xorriso_limine.step);
+
+    limine_iso_step.dependOn(&limine_install.step);
+
+    const run_limine_step = b.step("run-limine", "Run kernel in QEMU using Limine ISO");
+
+    const qemu_limine = b.addSystemCommand(&.{
+        qemu_version,
+        "-cdrom",
+        "kfs-limine.iso",
+        "-serial",
+        "stdio",
+    });
+    qemu_limine.step.dependOn(&limine_install.step);
+
+    run_limine_step.dependOn(&qemu_limine.step);
 }

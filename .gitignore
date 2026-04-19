@@ -3,5 +3,7 @@ toolchain/
 zig-out/
 *.o
 iso/
+iso-limine/
 kfs.iso
+kfs-limine.iso
 serial.log

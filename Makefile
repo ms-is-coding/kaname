@@ -44,6 +44,11 @@ run: zig
 	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(ZIG) build run $(ZIG_FLAGS)
 
 
+.PHONY: run-limine
+run-limine: zig
+	PATH="$(TOOLCHAIN_DIR)/bin/$$PATH" $(ZIG) build run-limine $(ZIG_FLAGS)
+
+
 .PHONY: run-bonus
 run-bonus: zig
 	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(ZIG) build run -Dfull=true $(ZIG_FLAGS)
@@ -61,7 +66,7 @@ fmt: zig
 
 .PHONY: clean
 clean:
-	rm -rf zig-out .zig-cache iso kfs.iso
+	rm -rf zig-out .zig-cache iso kfs.iso iso-limine kfs-limine.iso
 
 
 .PHONY: distclean
