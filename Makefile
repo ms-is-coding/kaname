@@ -2,7 +2,7 @@
 # Config
 # =========================
 
-ZIG_VERSION := 0.15.2
+ZIG_VERSION := 0.16.0
 TOOLCHAIN_DIR := $(PWD)/toolchain
 ZIG := $(TOOLCHAIN_DIR)/zig/zig
 ZIG_FLAGS :=

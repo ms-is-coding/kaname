@@ -5,7 +5,7 @@ pub const VGA_WIDTH = 80;
 pub const VGA_HEIGHT = 25;
 pub const VGA_MEMORY: [*]volatile u16 = @ptrFromInt(0xB8000);
 
-pub const VgaColor = enum(u4) {
+pub const Color = enum(u4) {
     black = 0,
     blue = 1,
     green = 2,
@@ -24,17 +24,23 @@ pub const VgaColor = enum(u4) {
     white = 15,
 };
 
-pub fn vgaEntryColor(fg: VgaColor, bg: VgaColor) u8 {
-    return @intFromEnum(fg) | (@as(u8, @intFromEnum(bg)) << 4);
-}
+pub const EntryColor = struct {
+    value: u8,
 
-pub fn vgaEntry(uc: u8, color: u8) u16 {
-    return @as(u16, uc) | (@as(u16, color) << 8);
+    pub fn init(fg: Color, bg: Color) EntryColor {
+        return .{
+            .value = @intFromEnum(fg) | (@as(u8, @intFromEnum(bg)) << 4),
+        };
+    }
+};
+
+pub fn vgaEntry(uc: u8, color: EntryColor) u16 {
+    return @as(u16, uc) | (@as(u16, color.value) << 8);
 }
 
 var terminal_row: usize = 0;
 var terminal_column: usize = 0;
-var terminal_color: u8 = 0;
+var terminal_color: EntryColor = undefined;
 var terminal_buffer: [*]volatile u16 = VGA_MEMORY;
 
 pub fn putchar(c: u8) void {
@@ -95,7 +101,7 @@ fn scrollScreen() void {
 pub fn initialize() void {
     terminal_row = 0;
     terminal_column = 0;
-    terminal_color = vgaEntryColor(.green, .black);
+    terminal_color = EntryColor.init(.green, .black);
     terminal_buffer = VGA_MEMORY;
     clearScreen(terminal_color);
     enableCursor(14, 15);
@@ -131,7 +137,8 @@ pub fn putEntryAt(entry: u16, x: usize, y: usize) void {
     terminal_buffer[y * VGA_WIDTH + x] = entry;
 }
 
-pub fn clearScreen(color: u8) void {
+pub fn clearScreen(color: EntryColor) void {
+    terminal_color = color;
     for (0..VGA_HEIGHT) |y| {
         for (0..VGA_WIDTH) |x| {
             terminal_buffer[y * VGA_WIDTH + x] = vgaEntry(' ', color);
@@ -159,19 +166,31 @@ pub fn updateCursor() void {
     ports.outb(0x3D5, @truncate(pos >> 8));
 }
 
-const VgaWriter = struct {
-    pub fn write(_: void, data: []const u8) error{}!usize {
-        for (data) |c| putchar(c);
-        return data.len;
+const Writer = struct {
+    const W = std.Io.Writer;
+
+    fn drain(w: *W, data: []const []const u8, splat: usize) W.Error!usize {
+        _ = w;
+        var total: usize = 0;
+        for (data[0 .. data.len - 1]) |bytes| {
+            @This().write(bytes);
+            total += bytes.len;
+        }
+        const pattern = data[data.len - 1];
+        for (0..splat) |_| @This().write(pattern);
+        return total + pattern.len * splat;
     }
 
-    pub const Writer = std.io.GenericWriter(void, error{}, VgaWriter.write);
+    fn write(bytes: []const u8) void {
+        for (bytes) |c| putchar(c);
+    }
 
-    pub fn writer() Writer {
-        return .{ .context = {} };
+    pub fn getWriter() W {
+        return .{ .vtable = &.{ .drain = drain }, .buffer = &.{} };
     }
 };
 
 pub fn print(comptime format: []const u8, args: anytype) void {
-    VgaWriter.writer().print(format, args) catch {};
+    var w = Writer.getWriter();
+    w.print(format, args) catch {};
 }

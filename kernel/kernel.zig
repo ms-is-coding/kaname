@@ -23,7 +23,7 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
     const info = arch.cpuid.familyInfo();
 
     arch.serial.print("CPU vendor: {s}\n", .{cpu_vendor});
-    arch.serial.print("CPU brand:  {s}\n", .{std.mem.trimRight(u8, &cpu_brand, &.{0})});
+    arch.serial.print("CPU brand:  {s}\n", .{std.mem.trimEnd(u8, &cpu_brand, &.{0})});
     arch.serial.print("Family: {}  Model: {}  Stepping: {}\n", .{
         arch.cpuid.effectiveFamily(info),
         arch.cpuid.effectiveModel(info),
@@ -37,6 +37,7 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
     arch.keyboard.setCharHandler(shell.onChar);
     arch.idt.enableInterrupts();
 
+    // TODO only init apic when CPUID indicates its availability
     // arch.lapic.init() catch {
     //     arch.pic.init();
     //     arch.serial.print("LAPIC init failed\n", .{});

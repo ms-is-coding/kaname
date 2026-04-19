@@ -1,7 +1,7 @@
 .{
     .name = .kfs,
     .fingerprint = 0x416811747cfb6b1a,
-    .minimum_zig_version = "0.15.0",
+    .minimum_zig_version = "0.16.0",
     .version = "0.0.0", // placeholder, refer to git tag
     .dependencies = .{},
     .paths = .{

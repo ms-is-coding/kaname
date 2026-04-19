@@ -55,24 +55,36 @@ pub fn write(s: []const u8) void {
     for (s) |c| putchar(c);
 }
 
-const SerialWriter = struct {
-    pub fn write(_: void, data: []const u8) error{}!usize {
+const Writer = struct {
+    const W = std.Io.Writer;
+
+    fn drain(w: *W, data: []const []const u8, splat: usize) W.Error!usize {
+        _ = w;
+        var total: usize = 0;
+        for (data[0 .. data.len - 1]) |bytes| {
+            @This().write(bytes);
+            total += bytes.len;
+        }
+        const pattern = data[data.len - 1];
+        for (0..splat) |_| @This().write(pattern);
+        return total + pattern.len * splat;
+    }
+
+    fn write(bytes: []const u8) void {
         var prev: u8 = 0;
-        for (data) |c| {
+        for (bytes) |c| {
             if (c == '\n' and prev != '\r') putchar('\r');
             putchar(c);
             prev = c;
         }
-        return data.len;
     }
 
-    pub const Writer = std.io.GenericWriter(void, error{}, SerialWriter.write);
-
-    pub fn writer() Writer {
-        return .{ .context = {} };
+    pub fn getWriter() W {
+        return .{ .vtable = &.{ .drain = drain }, .buffer = &.{} };
     }
 };
 
 pub fn print(comptime format: []const u8, args: anytype) void {
-    SerialWriter.writer().print(format, args) catch {};
+    var w = Writer.getWriter();
+    w.print(format, args) catch {};
 }

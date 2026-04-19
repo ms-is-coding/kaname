@@ -66,7 +66,7 @@ fn cmdCpuinfo(_: []const u8) void {
         cpuid.vendorString(),
         cpuid.effectiveFamily(cpuid.familyInfo()),
         cpuid.effectiveModel(cpuid.familyInfo()),
-        std.mem.trimRight(u8, &cpuid.brandString(), &.{0}),
+        std.mem.trimEnd(u8, &cpuid.brandString(), &.{0}),
         cpuid.familyInfo().stepping,
     });
     printFlags(cpuid.features());
@@ -82,7 +82,7 @@ fn cmdCpuinfo(_: []const u8) void {
 }
 
 fn cmdClear(_: []const u8) void {
-    vga.clearScreen(0);
+    vga.clearScreen(vga.EntryColor.init(.green, .black));
     vga.setPosition(0, 0);
 }
 
