@@ -1,6 +1,7 @@
-const pic = @import("pic.zig");
-const idt = @import("idt.zig");
-const ports = @import("ports.zig");
+const arch = @import("arch");
+const pic = arch.pic;
+const idt = arch.idt;
+const ports = arch.ports;
 
 // https://wiki.osdev.org/PS/2_Keyboard
 

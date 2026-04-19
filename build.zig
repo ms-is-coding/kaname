@@ -14,16 +14,29 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    const arch = b.createModule(.{
-        .root_source_file = b.path("arch/arch.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
     const abi = b.createModule(.{
         .root_source_file = b.path("abi/abi.zig"),
         .target = target,
         .optimize = optimize,
+    });
+
+    const arch = b.createModule(.{
+        .root_source_file = b.path("arch/arch.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "abi", .module = abi },
+        },
+    });
+
+    const drivers = b.createModule(.{
+        .root_source_file = b.path("drivers/drivers.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "arch", .module = arch },
+            .{ .name = "abi", .module = abi },
+        },
     });
 
     const kernel = b.addExecutable(.{
@@ -35,6 +48,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "arch", .module = arch },
                 .{ .name = "abi", .module = abi },
+                .{ .name = "drivers", .module = drivers },
             },
         }),
     });

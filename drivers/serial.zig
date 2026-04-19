@@ -1,4 +1,4 @@
-const ports = @import("ports.zig");
+const ports = @import("arch").ports;
 const std = @import("std");
 
 // https://wiki.osdev.org/Serial_Ports

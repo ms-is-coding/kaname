@@ -1,5 +1,4 @@
-const vbe = @import("vbe.zig");
-const acpi = @import("acpi.zig");
+const abi = @import("abi");
 
 // https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html
 
@@ -118,8 +117,8 @@ pub const VbeTag = extern struct {
     vbe_interface_off: u16,
     vbe_interface_seg: u16,
     vbe_interface_len: u16,
-    vbe_control_info: vbe.VbeInfoBlock,
-    vbe_mode_info: vbe.VbeModeInfoBlock,
+    vbe_control_info: abi.vbe.VbeInfoBlock,
+    vbe_mode_info: abi.vbe.VbeModeInfoBlock,
 };
 
 pub const FramebufferPalette = extern struct {
@@ -177,12 +176,12 @@ pub const FramebufferTag = extern struct {
 
 pub const AcpiRsdpV1Tag = extern struct {
     base: Tag,
-    rsdp: acpi.Rsdp,
+    rsdp: abi.acpi.Rsdp,
 };
 
 pub const AcpiRsdpV2Tag = extern struct {
     base: Tag,
-    rsdp: acpi.Xsdp,
+    rsdp: abi.acpi.Xsdp,
 };
 
 pub fn parse(info: *Info, handlers: anytype) void {

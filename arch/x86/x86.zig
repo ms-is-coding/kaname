@@ -1,14 +1,9 @@
 pub const boot = @import("boot.zig");
 pub const multiboot2 = @import("multiboot2.zig");
-pub const vbe = @import("vbe.zig");
-pub const vga = @import("vga.zig");
 pub const ports = @import("ports.zig");
-pub const serial = @import("serial.zig");
 pub const pic = @import("pic.zig");
 pub const lapic = @import("lapic.zig");
 pub const cpuid = @import("cpuid.zig");
 pub const msr = @import("msr.zig");
 pub const gdt = @import("gdt.zig");
-pub const acpi = @import("acpi.zig");
 pub const idt = @import("idt.zig");
-pub const keyboard = @import("keyboard.zig");

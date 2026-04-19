@@ -1,6 +1,6 @@
 const std = @import("std");
-const vga = @import("arch").vga;
-const acpi = @import("arch").acpi;
+const vga = @import("drivers").vga;
+const acpi = @import("drivers").acpi;
 const cpuid = @import("arch").cpuid;
 
 var line_buf: [256]u8 = undefined;
