@@ -2,9 +2,7 @@ const std = @import("std");
 const vga = @import("drivers").vga;
 const acpi = @import("drivers").acpi;
 const cpuid = @import("arch").cpuid;
-
-var line_buf: [256]u8 = undefined;
-var line_len: usize = 0;
+const keyboard = @import("drivers").keyboard;
 
 const Command = struct {
     name: []const u8,
@@ -97,25 +95,33 @@ fn dispatch(input: []const u8) void {
     vga.print("unknown command: {s}\n> ", .{input});
 }
 
-pub fn onChar(c: u8) void {
-    switch (c) {
-        '\n' => {
-            vga.putchar('\n');
-            dispatch(line_buf[0..line_len]);
-            line_len = 0;
-        },
-        0x08 => {
-            if (line_len > 0) {
-                line_len -= 1;
-                vga.backspace();
+pub fn init() void {
+    var line_buf: [256]u8 = undefined;
+    var line_len: usize = 0;
+
+    while (true) {
+        if (keyboard.getKey()) |c| {
+            switch (c) {
+                '\n' => {
+                    vga.putchar('\n');
+                    dispatch(line_buf[0..line_len]);
+                    line_len = 0;
+                },
+                0x08 => {
+                    if (line_len > 0) {
+                        line_len -= 1;
+                        vga.backspace();
+                    }
+                },
+                else => {
+                    if (line_len < line_buf.len - 1) {
+                        line_buf[line_len] = c;
+                        line_len += 1;
+                        vga.putchar(c);
+                    }
+                },
             }
-        },
-        else => {
-            if (line_len < line_buf.len - 1) {
-                line_buf[line_len] = c;
-                line_len += 1;
-                vga.putchar(c);
-            }
-        },
+        }
+        asm volatile ("hlt");
     }
 }

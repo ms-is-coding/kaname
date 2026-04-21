@@ -35,7 +35,6 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
     arch.idt.init();
     arch.pic.init();
     drivers.keyboard.init();
-    drivers.keyboard.setCharHandler(shell.onChar);
     arch.idt.enableInterrupts();
 
     // TODO only init apic when CPUID indicates its availability
@@ -94,6 +93,9 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
     });
 
     drivers.vga.write("> ");
+
+    shell.init();
+
     // main loop
     while (true) {
         asm volatile ("hlt");

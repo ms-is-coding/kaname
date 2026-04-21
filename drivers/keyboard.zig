@@ -13,6 +13,33 @@ var ctrl: bool = false;
 var alt: bool = false;
 var caps_lock: bool = false;
 
+const RingBuffer = struct {
+    head: u8,
+    tail: u8,
+    buffer: [256]u8,
+
+    pub fn push(self: *RingBuffer, value: u8) void {
+        const next = self.head +% 1;
+        if (next == self.tail) return;
+
+        self.buffer[self.head] = value;
+        self.head = next;
+    }
+
+    pub fn pop(self: *RingBuffer) ?u8 {
+        if (self.head == self.tail) return null;
+        const char = self.buffer[self.tail];
+        self.tail +%= 1;
+        return char;
+    }
+};
+
+var rb: RingBuffer = undefined;
+
+pub fn getKey() ?u8 {
+    return rb.pop();
+}
+
 // US QWERTY, normal
 const scancode_normal = blk: {
     var table = [_]u8{0} ** 128;
@@ -128,11 +155,6 @@ const scancode_shifted = blk: {
 };
 
 var extended: bool = false;
-var on_char: ?*const fn (u8) void = null;
-
-pub fn setCharHandler(handler: *const fn (u8) void) void {
-    on_char = handler;
-}
 
 fn keyboardHandler(frame: *idt.InterruptFrame) void {
     _ = frame;
@@ -205,11 +227,9 @@ fn keyboardHandler(frame: *idt.InterruptFrame) void {
     const shifted = shift_left or shift_right;
     const c: u8 = if (shifted) scancode_shifted[scancode] else scancode_normal[scancode];
 
-    if (c != 0) if (on_char) |handler| {
-        handler(c);
-    };
-
-    // todo process input
+    if (c != 0) {
+        rb.push(c);
+    }
     pic.sendEoi(.keyboard);
 }
 
