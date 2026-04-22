@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Release ISOs (${{ matrix.bootloader }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        bootloader: [ grub, limine ]
+        arch: [ x86 ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # needed for `git describe` in build.zig
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y xorriso curl
+
+      - name: Install Zig
+        run: |
+          curl -LO https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+          tar -xf zig-x86_64-linux-0.16.0.tar.xz
+          echo "$PWD/zig-x86_64-linux-0.16.0" >> $GITHUB_PATH
+
+      - name: Install GRUB
+        if: matrix.bootloader == 'grub'
+        run: sudo apt install -y grub-pc-bin mtools
+
+      - name: Install Limine
+        if: matrix.bootloader == 'limine'
+        run: |
+          git clone https://github.com/limine-bootloader/limine.git --branch=v11.4.1-binary --depth=1
+          make -C limine
+          sudo mkdir -p /usr/share/limine
+          sudo cp limine/limine-bios.sys \
+                  limine/limine-bios-cd.bin \
+                  limine/limine-uefi-cd.bin \
+                  /usr/share/limine/
+          sudo cp limine/limine /usr/local/bin/limine
+          sudo chmod +x /usr/local/bin/limine
+
+      - name: Build ISO (GRUB)
+        if: matrix.bootloader == 'grub'
+        run: make iso
+
+      - name: Build ISO (Limine)
+        if: matrix.bootloader == 'limine'
+        run: make iso-limine
+
+      - name: Rename ISO to release name (GRUB)
+        if: matrix.bootloader == 'grub'
+        run: mv kfs.iso kfs-${{ matrix.arch }}-grub.iso
+
+      - name: Rename ISO to release name (Limine)
+        if: matrix.bootloader == 'limine'
+        run: mv kfs-limine.iso kfs-${{ matrix.arch }}-limine.iso
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfs-${{ matrix.arch }}-${{ matrix.bootloader }}
+          path: kfs-${{ matrix.arch }}-${{ matrix.bootloader }}.iso
+          if-no-files-found: error
+
+      - name: Attach ISO to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: kfs-${{ matrix.arch }}-${{ matrix.bootloader }}.iso

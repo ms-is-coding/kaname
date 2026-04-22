@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Build & Test ISO (${{ matrix.bootloader }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        bootloader: [ grub, limine ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # needed for `git describe` in build.zig
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y xorriso qemu-system-i386 curl
+
+      - name: Install Zig
+        run: |
+          curl -LO https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+          tar -xf zig-x86_64-linux-0.16.0.tar.xz
+          echo "$PWD/zig-x86_64-linux-0.16.0" >> $GITHUB_PATH
+
+      - name: Check Zig version
+        run: zig version
+
+      - name: Install GRUB
+        if: matrix.bootloader == 'grub'
+        run: sudo apt install -y grub-pc-bin mtools
+
+      - name: Install Limine
+        if: matrix.bootloader == 'limine'
+        run: |
+          git clone https://github.com/limine-bootloader/limine.git --branch=v11.4.1-binary --depth=1
+          make -C limine
+          sudo mkdir -p /usr/share/limine
+          sudo cp limine/limine-bios.sys \
+                  limine/limine-bios-cd.bin \
+                  limine/limine-uefi-cd.bin \
+                  /usr/share/limine/
+          sudo cp limine/limine /usr/local/bin/limine
+          sudo chmod +x /usr/local/bin/limine
+
+      - name: Build kernel
+        run: make build
+
+      - name: Build ISO (GRUB)
+        if: matrix.bootloader == 'grub'
+        run: make iso
+
+      - name: Build ISO (Limine)
+        if: matrix.bootloader == 'limine'
+        run: make iso-limine
+
+      - name: Test ISO boots in QEMU (GRUB)
+        if: matrix.bootloader == 'grub'
+        run: |
+          timeout 10s qemu-system-i386 \
+            -cdrom kfs.iso \
+            -serial stdio \
+            -display none \
+            -no-reboot \
+            -no-shutdown \
+          || [ $? -eq 124 ]  # timeout (124) is acceptable — kernel is running
+
+      - name: Test ISO boots in QEMU (Limine)
+        if: matrix.bootloader == 'limine'
+        run: |
+          timeout 10s qemu-system-i386 \
+            -cdrom kfs-limine.iso \
+            -serial stdio \
+            -display none \
+            -no-reboot \
+            -no-shutdown \
+          || [ $? -eq 124 ]
+

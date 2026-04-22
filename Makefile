@@ -3,9 +3,8 @@
 # =========================
 
 ZIG_VERSION := 0.16.0
-TOOLCHAIN_DIR := $(PWD)/toolchain
-ZIG := $(TOOLCHAIN_DIR)/zig/zig
 ZIG_FLAGS :=
+ZIG := zig
 
 # =========================
 # Targets
@@ -15,53 +14,49 @@ ZIG_FLAGS :=
 all: build
 
 
-.PHONY: toolchain
-toolchain:
-	./scripts/install-zig.sh $(ZIG_VERSION) $(TOOLCHAIN_DIR)
-	./scripts/install-mtools.sh $(TOOLCHAIN_DIR)
-
-
-.PHONY: zig
-zig:
-	@if [ ! -f "$(ZIG)" ]; then \
-		echo "Zig not found. Run 'make toolchain' first."; \
-		exit 1; \
-	fi
-
-
 .PHONY: build
-build: zig
+build:
 	$(ZIG) build $(ZIG_FLAGS)
 
 
 .PHONY: bonus
-bonus: zig
+bonus:
 	$(ZIG) build -Dfull=true $(ZIG_FLAGS)
 
 
+.PHONY: iso
+iso:
+	$(ZIG) build iso
+
+
+.PHONY: iso-limine
+iso-limine:
+	$(ZIG) build iso-limine
+
+
 .PHONY: run
-run: zig
-	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(ZIG) build run $(ZIG_FLAGS)
+run:
+	$(ZIG) build run $(ZIG_FLAGS)
 
 
 .PHONY: run-limine
-run-limine: zig
-	PATH="$(TOOLCHAIN_DIR)/bin/$$PATH" $(ZIG) build run-limine $(ZIG_FLAGS)
+run-limine:
+	$(ZIG) build run-limine $(ZIG_FLAGS)
 
 
 .PHONY: run-bonus
-run-bonus: zig
-	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(ZIG) build run -Dfull=true $(ZIG_FLAGS)
+run-bonus:
+	$(ZIG) build run -Dfull=true $(ZIG_FLAGS)
 
 
 .PHONY: test
-test: zig
+test:
 	$(ZIG) build test $(ZIG_FLAGS)
 
 
 .PHONY: fmt
-fmt: zig
-	$(ZIG) fmt kernel arch abi libk
+fmt:
+	$(ZIG) fmt kernel arch abi drivers
 
 
 .PHONY: clean

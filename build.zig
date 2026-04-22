@@ -2,17 +2,19 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
+    const target = b.standardTargetOptions(.{
+        .whitelist = &.{
+            .{ .cpu_arch = .x86, .os_tag = .freestanding, .abi = .none },
+            .{ .cpu_arch = .x86_64, .os_tag = .freestanding, .abi = .none },
+        },
+        .default_target = .{
+            .cpu_arch = .x86,
+            .os_tag = .freestanding,
+            .abi = .none,
+        },
+    });
 
     const cpu_arch: std.Target.Cpu.Arch = .x86;
-
-    const target = b.resolveTargetQuery(.{
-        .cpu_arch = cpu_arch,
-        .os_tag = .freestanding,
-        .abi = .none,
-        .cpu_features_sub = std.Target.x86.featureSet(&.{
-            .sse,
-        }),
-    });
 
     const abi = b.createModule(.{
         .root_source_file = b.path("abi/abi.zig"),
@@ -39,18 +41,20 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const kernel_module = b.createModule(.{
+        .root_source_file = b.path("kernel/kernel.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "arch", .module = arch },
+            .{ .name = "abi", .module = abi },
+            .{ .name = "drivers", .module = drivers },
+        },
+    });
+
     const kernel = b.addExecutable(.{
         .name = "kfs.kernel",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("kernel/kernel.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "arch", .module = arch },
-                .{ .name = "abi", .module = abi },
-                .{ .name = "drivers", .module = drivers },
-            },
-        }),
+        .root_module = kernel_module,
     });
 
     const git_version = b.run(&.{ "git", "describe", "--tags", "--dirty" });
