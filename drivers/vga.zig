@@ -98,7 +98,7 @@ fn scrollScreen() void {
     terminal_row = VGA_HEIGHT - 1;
 }
 
-pub fn initialize() void {
+pub fn init() void {
     terminal_row = 0;
     terminal_column = 0;
     terminal_color = EntryColor.init(.green, .black);
@@ -108,7 +108,7 @@ pub fn initialize() void {
     updateCursor();
 }
 
-pub fn setColor(color: u8) void {
+pub fn setColor(color: EntryColor) void {
     terminal_color = color;
 }
 

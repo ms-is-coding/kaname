@@ -5,7 +5,7 @@ RUN pacman -Syu --noconfirm && \
         gcc make curl xz \
         bison flex python git \
         lib32-glibc \
-	qemu-full \
+        qemu-full \
         grub \
         mtools xorriso \
         binutils file && \

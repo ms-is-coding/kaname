@@ -23,6 +23,7 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
     cpu_brand = arch.cpuid.brandString();
     const info = arch.cpuid.familyInfo();
 
+    drivers.serial.print("Serial output initialized\n", .{});
     drivers.serial.print("CPU vendor: {s}\n", .{cpu_vendor});
     drivers.serial.print("CPU brand:  {s}\n", .{std.mem.trimEnd(u8, &cpu_brand, &.{0})});
     drivers.serial.print("Family: {}  Model: {}  Stepping: {}\n", .{
@@ -53,7 +54,7 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
             switch (tag.type) {
                 .direct => @"42".draw42(ptr, tag.width, tag.height),
                 .ega_text => {
-                    drivers.vga.initialize();
+                    drivers.vga.init();
                     drivers.vga.print(
                         \\KFS {s}
                         \\Hello, {d}!
