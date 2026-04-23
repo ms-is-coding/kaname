@@ -54,8 +54,8 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
             switch (tag.type) {
                 .direct => @"42".draw42(ptr, tag.width, tag.height),
                 .ega_text => {
-                    drivers.vga.init();
-                    drivers.vga.print(
+                    drivers.terminal.init();
+                    drivers.terminal.print(
                         \\KFS {s}
                         \\Hello, {d}!
                         \\
@@ -67,9 +67,9 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
             }
         }
         pub fn onACPIv1(tag: *arch.multiboot2.AcpiRsdpV1Tag) void {
-            drivers.vga.print("ACPI v1 detected\n", .{});
+            drivers.terminal.print("ACPI v1 detected\n", .{});
             if (!tag.rsdp.isValid()) {
-                drivers.vga.print("Invalid ACPI signature\n", .{});
+                drivers.terminal.print("Invalid ACPI signature\n", .{});
                 return;
             }
             drivers.acpi.init(tag.rsdp.rsdt_address);
@@ -85,15 +85,13 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
         }
 
         pub fn onACPIv2(tag: *arch.multiboot2.AcpiRsdpV2Tag) void {
-            drivers.vga.print("ACPI v2+ detected\n", .{});
+            drivers.terminal.print("ACPI v2+ detected\n", .{});
             if (!tag.rsdp.isValid()) {
-                drivers.vga.print("Invalid ACPI signature\n", .{});
+                drivers.terminal.print("Invalid ACPI signature\n", .{});
                 return;
             }
         }
     });
-
-    drivers.vga.write("> ");
 
     shell.init();
 
@@ -107,5 +105,6 @@ pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
 
 pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
     drivers.serial.print("PANIC: {s}\n", .{msg});
+    drivers.terminal.print("PANIC: {s}\n", .{msg});
     while (true) asm volatile ("cli; hlt");
 }

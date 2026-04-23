@@ -1,5 +1,5 @@
 const std = @import("std");
-const vga = @import("drivers").vga;
+const terminal = @import("drivers").terminal;
 const acpi = @import("drivers").acpi;
 const cpuid = @import("arch").cpuid;
 const keyboard = @import("drivers").keyboard;
@@ -25,16 +25,16 @@ fn cmdHelp(_: []const u8) void {
         break :blk max;
     };
     for (commands) |cmd| {
-        vga.print("{s}", .{cmd.name});
+        terminal.print("{s}", .{cmd.name});
         // pad with spaces
         var i = cmd.name.len;
-        while (i < maxlen + 2) : (i += 1) vga.putchar(' ');
-        vga.print("{s}\n", .{cmd.description});
+        while (i < maxlen + 2) : (i += 1) terminal.putchar(' ');
+        terminal.print("{s}\n", .{cmd.description});
     }
 }
 
 fn cmdUname(_: []const u8) void {
-    vga.print("KFS {s}\n", .{@import("config").version});
+    terminal.print("KFS {s}\n", .{@import("config").version});
 }
 
 fn cmdShutdown(_: []const u8) void {
@@ -45,14 +45,14 @@ fn printFlags(features: anytype) void {
     inline for (std.meta.fields(@TypeOf(features))) |field| {
         if (field.type == bool) {
             if (@field(features, field.name)) {
-                vga.print("{s} ", .{field.name});
+                terminal.print("{s} ", .{field.name});
             }
         }
     }
 }
 
 fn cmdCpuinfo(_: []const u8) void {
-    vga.print(
+    terminal.print(
         \\processor     : 0
         \\vendor_id     : {s}
         \\cpu family    : {}
@@ -69,7 +69,8 @@ fn cmdCpuinfo(_: []const u8) void {
     });
     printFlags(cpuid.features());
     printFlags(cpuid.extFeatures());
-    vga.print(
+    terminal.print("\n", .{});
+    terminal.print(
         \\
         \\address sizes : {} bits physical, {} bits virtual
         \\
@@ -80,19 +81,18 @@ fn cmdCpuinfo(_: []const u8) void {
 }
 
 fn cmdClear(_: []const u8) void {
-    vga.clearScreen(vga.EntryColor.init(.green, .black));
-    vga.setPosition(0, 0);
+    terminal.clearScreen();
 }
 
 fn dispatch(input: []const u8) void {
     for (commands) |cmd| {
         if (std.mem.eql(u8, input, cmd.name)) {
             cmd.func(input);
-            vga.write("> ");
+            terminal.write("> ");
             return;
         }
     }
-    vga.print("unknown command: {s}\n> ", .{input});
+    terminal.print("unknown command: {s}\n> ", .{input});
 }
 
 pub fn init() void {
@@ -104,25 +104,30 @@ pub fn init() void {
             switch (t) {
                 .char => |c| switch (c) {
                     '\n' => {
-                        vga.putchar('\n');
+                        terminal.putchar('\n');
                         dispatch(line_buf[0..line_len]);
                         line_len = 0;
                     },
                     0x08 => {
                         if (line_len > 0) {
                             line_len -= 1;
-                            vga.backspace();
+                            terminal.putchar(0x08);
                         }
                     },
                     else => {
                         if (line_len < line_buf.len - 1) {
                             line_buf[line_len] = c;
                             line_len += 1;
-                            vga.putchar(c);
+                            terminal.putchar(c);
                         }
                     },
                 },
-                else => {},
+                .function => |func| {
+                    // assumes terminal can support all 12 function keys
+                    terminal.switchActive(func);
+                },
+                .scroll_up => terminal.scrollUp(),
+                .scroll_down => terminal.scrollDown(),
             }
         }
         asm volatile ("hlt");
