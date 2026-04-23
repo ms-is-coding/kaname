@@ -13,12 +13,19 @@ var ctrl: bool = false;
 var alt: bool = false;
 var caps_lock: bool = false;
 
+pub const Key = union(enum) {
+    char: u8,
+    function: u8,
+    scroll_up,
+    scroll_down,
+};
+
 const RingBuffer = struct {
     head: u8,
     tail: u8,
-    buffer: [256]u8,
+    buffer: [256]Key,
 
-    pub fn push(self: *RingBuffer, value: u8) void {
+    pub fn push(self: *RingBuffer, value: Key) void {
         const next = self.head +% 1;
         if (next == self.tail) return;
 
@@ -26,7 +33,7 @@ const RingBuffer = struct {
         self.head = next;
     }
 
-    pub fn pop(self: *RingBuffer) ?u8 {
+    pub fn pop(self: *RingBuffer) ?Key {
         if (self.head == self.tail) return null;
         const char = self.buffer[self.tail];
         self.tail +%= 1;
@@ -36,7 +43,7 @@ const RingBuffer = struct {
 
 var rb: RingBuffer = undefined;
 
-pub fn getKey() ?u8 {
+pub fn getKey() ?Key {
     return rb.pop();
 }
 
@@ -174,7 +181,11 @@ fn keyboardHandler(frame: *idt.InterruptFrame) void {
             pic.sendEoi(.keyboard);
             return;
         }
-        // todo handle extended input
+        switch (scancode) {
+            0x49 => rb.push(.scroll_up),
+            0x51 => rb.push(.scroll_down),
+            else => {},
+        }
         pic.sendEoi(.keyboard);
         return;
     }
@@ -220,6 +231,16 @@ fn keyboardHandler(frame: *idt.InterruptFrame) void {
             pic.sendEoi(.keyboard);
             return;
         },
+        0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44 => {
+            rb.push(.{ .function = scancode - 0x3B });
+            pic.sendEoi(.keyboard);
+            return;
+        },
+        0x57, 0x58 => {
+            rb.push(.{ .function = scancode - 0x57 + 10 });
+            pic.sendEoi(.keyboard);
+            return;
+        },
         else => {},
     }
 
@@ -228,7 +249,7 @@ fn keyboardHandler(frame: *idt.InterruptFrame) void {
     const c: u8 = if (shifted) scancode_shifted[scancode] else scancode_normal[scancode];
 
     if (c != 0) {
-        rb.push(c);
+        rb.push(.{ .char = c });
     }
     pic.sendEoi(.keyboard);
 }

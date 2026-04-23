@@ -100,26 +100,29 @@ pub fn init() void {
     var line_len: usize = 0;
 
     while (true) {
-        if (keyboard.getKey()) |c| {
-            switch (c) {
-                '\n' => {
-                    vga.putchar('\n');
-                    dispatch(line_buf[0..line_len]);
-                    line_len = 0;
+        if (keyboard.getKey()) |t| {
+            switch (t) {
+                .char => |c| switch (c) {
+                    '\n' => {
+                        vga.putchar('\n');
+                        dispatch(line_buf[0..line_len]);
+                        line_len = 0;
+                    },
+                    0x08 => {
+                        if (line_len > 0) {
+                            line_len -= 1;
+                            vga.backspace();
+                        }
+                    },
+                    else => {
+                        if (line_len < line_buf.len - 1) {
+                            line_buf[line_len] = c;
+                            line_len += 1;
+                            vga.putchar(c);
+                        }
+                    },
                 },
-                0x08 => {
-                    if (line_len > 0) {
-                        line_len -= 1;
-                        vga.backspace();
-                    }
-                },
-                else => {
-                    if (line_len < line_buf.len - 1) {
-                        line_buf[line_len] = c;
-                        line_len += 1;
-                        vga.putchar(c);
-                    }
-                },
+                else => {},
             }
         }
         asm volatile ("hlt");
