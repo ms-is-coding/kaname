@@ -66,7 +66,8 @@ comptime {
 
 export var multiboot2_header: Multiboot2Header align(8) linksection(".multiboot2") = makeHeader();
 
-export var stack: [16384]u8 align(16) linksection(".bss") = undefined;
+pub const STACK_SIZE = 4 * 4096;
+export var stack: [STACK_SIZE]u8 align(16) linksection(".bss") = undefined;
 
 // Enable x87 FPU
 const _fpu_init =
@@ -99,6 +100,7 @@ const _sse_init =
 
 export fn _start() callconv(.naked) noreturn {
     asm volatile (
+        \\xor %%ebp, %%ebp
         \\movl $stack + 16384, %%esp
         // Reset EFLAGS
         \\pushl $0
@@ -108,7 +110,7 @@ export fn _start() callconv(.naked) noreturn {
         // Push magic value
         \\pushl %%eax
     ++ _fpu_init ++ _sse_init ++
-        \\call kmain
+        \\call main
         \\cli
         \\.Lhalt:
         \\hlt

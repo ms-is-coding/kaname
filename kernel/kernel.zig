@@ -12,7 +12,7 @@ comptime {
 var cpu_vendor: [12]u8 = undefined;
 var cpu_brand: [48]u8 = undefined;
 
-pub export fn kmain(magic: u32, mb_info: *arch.multiboot2.Info) void {
+pub export fn main(magic: u32, mb_info: *arch.multiboot2.Info) void {
     drivers.serial.init() catch {};
 
     if (magic != arch.multiboot2.BOOTLOADER_MAGIC) {
