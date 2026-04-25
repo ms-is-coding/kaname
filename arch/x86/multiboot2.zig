@@ -153,6 +153,7 @@ pub const FramebufferType = enum(u8) {
 pub const FramebufferColorInfo = union(FramebufferType) {
     indexed: FramebufferIndexed,
     direct: FramebufferDirect,
+    ega_text: void,
 };
 
 pub const FramebufferTag = extern struct {
@@ -170,6 +171,7 @@ pub const FramebufferTag = extern struct {
         return switch (self.type) {
             .indexed => .{ .indexed = @as(*FramebufferIndexed, @ptrFromInt(addr)).* },
             .direct => .{ .direct = @as(*FramebufferDirect, @ptrFromInt(addr)).* },
+            .ega_text => .{ .ega_text = {} },
         };
     }
 };

@@ -120,7 +120,7 @@ pub fn getColumn() usize {
     return terminal_column;
 }
 
-pub fn getColor() u8 {
+pub fn getColor() EntryColor {
     return terminal_color;
 }
 

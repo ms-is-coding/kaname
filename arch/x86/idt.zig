@@ -163,7 +163,7 @@ pub fn registerHandler(vector: InterruptVector, handler: InterruptHandler) void 
 
 pub fn setGateUser(vector: InterruptVector) void {
     const addr = @intFromPtr(isr_stubs[@intFromEnum(vector)]);
-    idt_entries[vector] = IdtEntry.make(addr, gdt.KERNEL_CODE_SEG, 0xEE);
+    idt_entries[@intFromEnum(vector)] = IdtEntry.make(addr, gdt.KERNEL_CODE_SEG, 0, .interrupt_32);
 }
 
 pub fn init() void {
