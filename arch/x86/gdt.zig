@@ -1,7 +1,7 @@
 pub const KERNEL_CODE_SEG: u16 = 0x08;
 pub const KERNEL_DATA_SEG: u16 = 0x10;
 
-const GDT_ENTRIES = 3;
+const GDT_ENTRIES = 7;
 
 const GdtDescriptor = packed struct {
     size: u16,
@@ -56,6 +56,15 @@ const gdt_entries = [GDT_ENTRIES]SegmentDescriptor{
     SegmentDescriptor.make(0, 0xFFFFF, .{ .read_write = 1, .executable = 1, .privilege = 0 }, .{}),
     // 0x10 - Kernel data (ring 0, RW)
     SegmentDescriptor.make(0, 0xFFFFF, .{ .read_write = 1, .executable = 0, .privilege = 0 }, .{}),
+    // 0x18 - Kernel stack (ring 0, RW, expand-down)
+    SegmentDescriptor.make(0, 0xFFFFF, .{ .read_write = 1, .executable = 0, .privilege = 0, .direction_conforming = 1 }, .{}),
+
+    // 0x20 - User code (ring 3, RWE)
+    SegmentDescriptor.make(0, 0xFFFFF, .{ .read_write = 1, .executable = 1, .privilege = 3 }, .{}),
+    // 0x28 - User data (ring 3, RW)
+    SegmentDescriptor.make(0, 0xFFFFF, .{ .read_write = 1, .executable = 0, .privilege = 3 }, .{}),
+    // 0x30 - User stack (ring 3, RW, expand-down)
+    SegmentDescriptor.make(0, 0xFFFFF, .{ .read_write = 1, .executable = 0, .privilege = 3, .direction_conforming = 1 }, .{}),
 };
 
 pub fn init() void {
