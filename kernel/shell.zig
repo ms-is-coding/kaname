@@ -3,6 +3,7 @@ const terminal = @import("drivers").terminal;
 const acpi = @import("drivers").acpi;
 const cpuid = @import("arch").cpuid;
 const keyboard = @import("drivers").keyboard;
+const STACK_SIZE = @import("arch").boot.STACK_SIZE;
 
 const Command = struct {
     name: []const u8,
@@ -16,6 +17,8 @@ const commands = [_]Command{
     .{ .name = "shutdown", .description = "Shutdown system", .func = cmdShutdown },
     .{ .name = "cpuinfo", .description = "CPU information", .func = cmdCpuinfo },
     .{ .name = "clear", .description = "Clear screen", .func = cmdClear },
+    .{ .name = "stack", .description = "Print kernel stack", .func = cmdStack },
+    .{ .name = "symbols", .description = "Print available functions", .func = cmdSymbols },
 };
 
 fn cmdHelp(_: []const u8) void {
@@ -82,6 +85,17 @@ fn cmdCpuinfo(_: []const u8) void {
 
 fn cmdClear(_: []const u8) void {
     terminal.clearScreen();
+}
+
+fn cmdStack(_: []const u8) void {
+    const header_str = "=== Stack Trace ";
+    terminal.print(header_str ++ ("=" ** (80 - header_str.len)), .{});
+    @import("debug/stack.zig").printStack();
+    terminal.print("=" ** 80, .{});
+}
+
+fn cmdSymbols(_: []const u8) void {
+    @import("debug/symbols.zig").printSymbols();
 }
 
 fn dispatch(input: []const u8) void {
